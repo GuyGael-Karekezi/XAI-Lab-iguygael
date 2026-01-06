@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+
+  credit-train:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    container_name: credit-train
+    volumes:
+      - ./data:/app/data
+      - ./model:/app/model
+    restart: "no"
+
+  credit-eval:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.evaluate
+    container_name: credit-eval
+    depends_on:
+      - credit-train
+    volumes:
+      - ./data:/app/data
+      - ./model:/app/model
+      - ./visualizations:/app/visualizations
+    restart: "no"
+
+  credit-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inference
+    container_name: credit-api
+    depends_on:
+      - credit-train
+      - credit-eval
+    volumes:
+      - ./model:/app/model
+    ports:
+      - "8000:8000"
+    restart: "always"
