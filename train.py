@@ -13,6 +13,15 @@ def train():
     os.makedirs(config.MODEL_DIR, exist_ok=True)
 
     df = config.load_data()
+    
+    # Count gender
+    gender_counts = df["Sex"].value_counts()
+    print('+-+'*30)
+    print("Gender distribution in dataset:")
+    print('+-+'*30)
+    for gender, count in gender_counts.items():
+        print(f"{gender}: {count}")
+
     X = df.drop(columns=[config.TARGET])
     y = config.encode_target(df[config.TARGET])
 
@@ -28,7 +37,8 @@ def train():
     )
 
     X_train, _, y_train, _ = train_test_split(
-        X, y,
+        X,
+        y,
         test_size=0.2,
         stratify=y,
         random_state=config.RANDOM_STATE,
@@ -52,8 +62,8 @@ def train():
     ])
 
     pipeline.fit(X_train, y_train)
-    joblib.dump(pipeline, config.MODEL_PATH)
 
+    joblib.dump(pipeline, config.MODEL_PATH)
     print(f"Model saved to {config.MODEL_PATH}")
 
 
