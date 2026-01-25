@@ -13,5 +13,5 @@ COPY docker/requirements/requirements-eval.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY config.py evaluate.py ./
-
-CMD ["python", "evaluate.py"]
+# Uncomment
+#CMD ["python", "evaluate.py"]

@@ -65,8 +65,8 @@ def evaluate():
         print(f"Waiting for model {config.MODEL_PATH}...")
         time.sleep(5)
 
-    # Load data
-    df = config.load_data()
+    # TODO: Uncomment to load data
+    #df = config.load_data()
     X = df.drop(columns=[config.TARGET])
     y = config.encode_target(df[config.TARGET])
     sensitive = df[config.PROTECTED_ATTR]
