@@ -2,14 +2,14 @@ import os
 import pandas as pd
 
 # Paths
-DATA_PATH = "data/credit_dataset2.csv"  # TODO student to modify the dataset path
-MODEL_DIR = "model"
-VIZ_DIR = "visualizations"
-MODEL_PATH = os.path.join(MODEL_DIR, "xgb_credit_model2.pkl")
+DATA_PATH = os.environ.get("DATA_PATH", "data/credit_dataset2.csv")
+MODEL_DIR = os.environ.get("MODEL_DIR", "model")
+VIZ_DIR = os.environ.get("VIZ_DIR", "visualizations")
+MODEL_FILENAME = os.environ.get("MODEL_FILENAME", "xgb_credit_model2.pkl")
+MODEL_PATH = os.path.join(MODEL_DIR, MODEL_FILENAME)
 RANDOM_STATE = 42
 
-# TODO: Set to false, if instructed
-WITH_GENDER = True
+WITH_GENDER = os.environ.get("WITH_GENDER", "true").lower() == "true"
 
 # Data schema
 TARGET = "Risk"

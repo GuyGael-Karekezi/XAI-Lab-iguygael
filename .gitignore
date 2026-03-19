@@ -1,3 +1,6 @@
 .vscode/
 DEPLOYMENT_GUIDE.md
 minikube-linux-amd64
+
+ASDenv/
+Lab-5-instruction.pdf

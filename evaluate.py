@@ -3,7 +3,6 @@ import os
 import shap
 import time
 import joblib
-import numpy as np
 import matplotlib.pyplot as plt
 from lime.lime_tabular import LimeTabularExplainer
 from sklearn.model_selection import train_test_split
@@ -60,25 +59,20 @@ def evaluate():
     setup_plots()
     ensure_dirs()
 
-    # Wait for training container
     while not os.path.exists(config.MODEL_PATH):
         print(f"Waiting for model {config.MODEL_PATH}...")
         time.sleep(5)
 
-    # df = config.load_data()
+    df = config.load_data()
 
-    # Drop gender from X if disabled
     drop_cols = [config.TARGET]
     if not config.WITH_GENDER:
         drop_cols.append("Sex")
 
     X = df.drop(columns=drop_cols)
     y = config.encode_target(df[config.TARGET])
+    sensitive = df[config.PROTECTED_ATTR] if config.WITH_GENDER else None
 
-    # Sensitive feature only if gender is enabled
-    # sensitive = df[config.PROTECTED_ATTR] if config.WITH_GENDER else None
-
-    # Train/test split
     if config.WITH_GENDER:
         X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
             X, y, sensitive,
@@ -94,23 +88,19 @@ def evaluate():
             random_state=config.RANDOM_STATE,
         )
 
-    # Load trained pipeline
     pipeline = joblib.load(config.MODEL_PATH)
     preprocessor = pipeline.named_steps["preprocessor"]
     model = pipeline.named_steps["model"]
 
-    # Predictions
     y_pred = pipeline.predict(X_test)
     y_prob = pipeline.predict_proba(X_test)[:, 1]
 
-    # Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)
     disp = ConfusionMatrixDisplay(cm, display_labels=["Bad", "Good"])
     disp.plot(cmap="Blues")
     plt.title("Confusion Matrix")
     save_fig("confusion_matrix")
 
-    # Performance Metrics
     fpr, tpr, _ = roc_curve(y_test, y_prob)
     roc_auc = auc(fpr, tpr)
     metrics = {
@@ -127,9 +117,6 @@ def evaluate():
     plt.title("Model Performance Metrics")
     save_fig("metrics_bar")
 
-    # ============================
-    # Fairness Analysis (ONLY if gender is used)
-    # ============================
     if config.WITH_GENDER:
         mf = MetricFrame(
             metrics={
@@ -142,16 +129,13 @@ def evaluate():
             sensitive_features=s_test,
         )
 
-        dp_diff = demographic_parity_difference(
-            y_test, y_pred, sensitive_features=s_test
-        )
-        eo_diff = equalized_odds_difference(
-            y_test, y_pred, sensitive_features=s_test
-        )
-
         fairness_results = {
-            "Demographic Parity Difference": dp_diff,
-            "Equalized Odds Difference": eo_diff,
+            "Demographic Parity Difference": demographic_parity_difference(
+                y_test, y_pred, sensitive_features=s_test
+            ),
+            "Equalized Odds Difference": equalized_odds_difference(
+                y_test, y_pred, sensitive_features=s_test
+            ),
             "Selection Rate Difference": (
                 mf.by_group["selection_rate"].max()
                 - mf.by_group["selection_rate"].min()
@@ -166,13 +150,11 @@ def evaluate():
             ),
         }
 
-        # Group-wise fairness plot
         mf.by_group.plot(kind="bar")
         plt.ylabel("Metric Value")
         plt.title("Group-wise Fairness Metrics")
         save_fig("fairness_group_metrics")
 
-        # Overall fairness disparities
         plt.bar(fairness_results.keys(), fairness_results.values())
         plt.axhline(0.1, linestyle="--", color="red", label="Fairness threshold")
         plt.ylabel("Difference")
@@ -181,11 +163,8 @@ def evaluate():
         plt.legend()
         save_fig("fairness_disparities")
     else:
-        print("Gender disabled — skipping fairness evaluation and plots.")
+        print("Gender disabled - skipping fairness evaluation and plots.")
 
-    # ============================
-    # SHAP Analysis
-    # ============================
     X_test_t = preprocessor.transform(X_test)
     feature_names = preprocessor.get_feature_names_out()
 
@@ -196,14 +175,11 @@ def evaluate():
         shap_values,
         X_test_t,
         feature_names=feature_names,
-        show=False
+        show=False,
     )
     plt.title("SHAP Feature Importance")
     save_fig("shap_summary")
 
-    # ============================
-    # LIME Analysis
-    # ============================
     lime_explainer = LimeTabularExplainer(
         training_data=preprocessor.transform(X_train),
         feature_names=feature_names.tolist(),
